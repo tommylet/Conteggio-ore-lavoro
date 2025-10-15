@@ -5,11 +5,16 @@ const FILES_TO_CACHE = [
   './style.css',
   './script.js',
   './logo.png',
+  './logo-192.png',
+  './logo-512.png',
+  './favicon.ico',
   './manifest.json'
 ];
+
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES_TO_CACHE)));
 });
+
 self.addEventListener('fetch', e => {
   e.respondWith(caches.match(e.request).then(response => response || fetch(e.request)));
 });
