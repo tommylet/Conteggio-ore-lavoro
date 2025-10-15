@@ -18,6 +18,7 @@
   <meta name="theme-color" content="#ffffff">
 </head>
 <body>
+  <!-- Logo -->
   <div class="logo">
     <img src="logo.png" alt="Logo Phoenix">
   </div>
@@ -35,12 +36,31 @@
 
   <div id="contenitore" class="scrollable"></div>
 
+  <!-- Libreria per generare PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <!-- Script principale -->
   <script src="script.js"></script>
+
+  <!-- Registrazione e aggiornamento automatico del Service Worker -->
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
-    }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      // Controlla nuovi service worker
+      reg.onupdatefound = () => {
+        const newWorker = reg.installing;
+        newWorker.onstatechange = () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            const refresh = confirm("È disponibile una nuova versione dell'app. Vuoi aggiornare?");
+            if (refresh) {
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+              window.location.reload();
+            }
+          }
+        };
+      };
+    }).catch(err => console.log('SW registration failed: ', err));
+  }
   </script>
 </body>
 </html>
