@@ -16,6 +16,45 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Ore Phoenix">
   <meta name="theme-color" content="#ffffff">
+
+  <style>
+    /* Banner aggiornamento */
+    #updateBanner {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: #1d72ff;
+      color: white;
+      text-align: center;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: 500;
+      display: none;
+      z-index: 1000;
+      animation: slideUp 0.4s ease-out;
+    }
+
+    #updateBanner button {
+      background-color: white;
+      color: #1d72ff;
+      border: none;
+      border-radius: 6px;
+      margin-left: 10px;
+      padding: 6px 10px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #updateBanner button:hover {
+      background-color: #e5e5e5;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
 </head>
 <body>
   <!-- Logo -->
@@ -36,29 +75,46 @@
 
   <div id="contenitore" class="scrollable"></div>
 
-  <!-- Libreria per generare PDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- Banner aggiornamento -->
+  <div id="updateBanner">
+    🔄 Nuova versione disponibile!
+    <button id="refreshApp">Aggiorna ora</button>
+    <button id="closeBanner" style="background-color:transparent;color:white;">✕</button>
+  </div>
 
-  <!-- Script principale -->
+  <!-- Libreria PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="script.js"></script>
 
-  <!-- Registrazione e aggiornamento automatico del Service Worker -->
+  <!-- Service Worker + Banner aggiornamento -->
   <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').then(reg => {
-      // Controlla nuovi service worker
+      let newWorker;
+
+      // Quando viene trovata una nuova versione
       reg.onupdatefound = () => {
-        const newWorker = reg.installing;
+        newWorker = reg.installing;
         newWorker.onstatechange = () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            const refresh = confirm("È disponibile una nuova versione dell'app. Vuoi aggiornare?");
-            if (refresh) {
-              newWorker.postMessage({ type: 'SKIP_WAITING' });
-              window.location.reload();
-            }
+            const banner = document.getElementById('updateBanner');
+            banner.style.display = 'block';
           }
         };
       };
+
+      // Azione pulsante Aggiorna
+      document.getElementById('refreshApp').addEventListener('click', () => {
+        if (newWorker) {
+          newWorker.postMessage({ type: 'SKIP_WAITING' });
+        }
+        window.location.reload();
+      });
+
+      // Pulsante chiudi banner
+      document.getElementById('closeBanner').addEventListener('click', () => {
+        document.getElementById('updateBanner').style.display = 'none';
+      });
     }).catch(err => console.log('SW registration failed: ', err));
   }
   </script>
