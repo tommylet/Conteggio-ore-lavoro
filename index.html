@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro Presenze - Phoenix</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="logo.png" type="image/png">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ore Phoenix">
+    <link rel="apple-touch-icon" href="logo.png">
+</head>
+<body>
+    <div class="logo">
+        <img src="logo.png" alt="Logo Phoenix">
+    </div>
+
+    <h2 style="text-align:center;">Registro Presenze</h2>
+
+    <div class="controls">
+        <label for="mese">Mese:</label>
+        <select id="mese"></select>
+        <label for="anno">Anno:</label>
+        <select id="anno"></select>
+        <button onclick="generaTabella()">Genera</button>
+        <button onclick="stampaPDF()">📄 Stampa PDF</button>
+    </div>
+
+    <div id="contenitore" class="scrollable"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="script.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>
