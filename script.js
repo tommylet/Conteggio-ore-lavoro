@@ -172,30 +172,28 @@ function normalizzaFrazioni() {
   });
 }
 
-// --- Generazione PDF leggibile (una pagina A3) ---
+// --- Generazione PDF scrollabile ---
 function stampaPDF() {
   const meseNome = mesi[parseInt(selMese.value)];
   const anno = parseInt(selAnno.value);
   const titolo = `Registro_Ore_${meseNome}_${anno}.pdf`;
 
-  // Crea contenitore per stampa
+  // Crea contenitore temporaneo per la stampa
   const elemento = document.createElement("div");
 
-  // Logo e titolo
+  // Clona logo e titolo
   const logo = document.querySelector(".logo").cloneNode(true);
   const titoloH2 = document.createElement("h2");
   titoloH2.textContent = `Registro Ore - ${meseNome} ${anno}`;
   titoloH2.style.textAlign = "center";
 
-  // Tabella
+  // Clona tabella
   const tabella = document.getElementById("presenze").cloneNode(true);
   tabella.style.width = "100%";
   tabella.style.fontSize = "12px";
   tabella.style.borderCollapse = "collapse";
-  tabella.style.pageBreakInside = "avoid";
-  tabella.style.breakInside = "avoid";
 
-  // Data di stampa
+  // Data e ora di visualizzazione
   const dataStampa = new Date();
   const dataInfo = document.createElement("p");
   dataInfo.textContent = `Visualizzato il ${dataStampa.toLocaleDateString()} alle ${dataStampa.toLocaleTimeString()}`;
@@ -208,20 +206,26 @@ function stampaPDF() {
   elemento.appendChild(tabella);
   elemento.appendChild(dataInfo);
 
-  // Genera PDF in formato A3 orizzontale e lo apre
+  // Genera canvas e PDF scrollabile
   html2canvas(elemento, { scale: 3, scrollY: 0, useCORS: true }).then(canvas => {
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jspdf.jsPDF('landscape', 'mm', 'a3');
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * pageWidth) / canvas.width;
-    const yOffset = (pageHeight - imgHeight) / 2;
-    pdf.addImage(imgData, 'PNG', 0, yOffset > 0 ? yOffset : 0, imgWidth, imgHeight);
-    const blobUrl = pdf.output('bloburl');
-    window.open(blobUrl, '_blank');
+    const imgData = canvas.toDataURL("image/png");
+
+    // Calcola formato PDF proporzionale all'immagine (PDF continuo)
+    const pdfWidth = canvas.width / 8;
+    const pdfHeight = canvas.height / 8;
+    const pdf = new jspdf.jsPDF({
+      orientation: "portrait",
+      unit: "px",
+      format: [pdfWidth, pdfHeight]
+    });
+
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+
+    // Apri in nuova scheda per visualizzazione (scrollabile)
+    const blobUrl = pdf.output("bloburl");
+    window.open(blobUrl, "_blank");
   });
 }
 
-// Avvio automatico
+// --- Avvio automatico ---
 generaTabella();
