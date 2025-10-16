@@ -178,21 +178,23 @@ function stampaPDF() {
   const anno = parseInt(selAnno.value);
   const titolo = `Registro_Ore_${meseNome}_${anno}.pdf`;
 
-  // Messaggio di caricamento
+  // Banner di caricamento
   const loadingMsg = document.createElement("div");
   loadingMsg.textContent = "⏳ Generazione PDF in corso...";
-  loadingMsg.style.position = "fixed";
-  loadingMsg.style.top = "10px";
-  loadingMsg.style.right = "10px";
-  loadingMsg.style.background = "#1d72ff";
-  loadingMsg.style.color = "white";
-  loadingMsg.style.padding = "8px 12px";
-  loadingMsg.style.borderRadius = "6px";
-  loadingMsg.style.fontSize = "14px";
-  loadingMsg.style.zIndex = "9999";
+  Object.assign(loadingMsg.style, {
+    position: "fixed",
+    top: "10px",
+    right: "10px",
+    background: "#1d72ff",
+    color: "white",
+    padding: "8px 12px",
+    borderRadius: "6px",
+    fontSize: "14px",
+    zIndex: "9999"
+  });
   document.body.appendChild(loadingMsg);
 
-  // Crea contenitore
+  // Crea contenuto PDF
   const elemento = document.createElement("div");
   const logo = document.querySelector(".logo").cloneNode(true);
   const titoloH2 = document.createElement("h2");
@@ -216,31 +218,29 @@ function stampaPDF() {
   elemento.appendChild(tabella);
   elemento.appendChild(dataInfo);
 
-  // Ottieni jsPDF dal bundle html2pdf
-  const { jsPDF } = window.jspdf;
+  // Recupera jsPDF dal bundle
+  const jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
 
-  html2canvas(elemento, { scale: 3, scrollY: 0, useCORS: true }).then(canvas => {
-    const imgData = canvas.toDataURL("image/png");
-    const pdfWidth = canvas.width / 8;
-    const pdfHeight = canvas.height / 8;
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "px",
-      format: [pdfWidth, pdfHeight]
+  html2canvas(elemento, { scale: 3, scrollY: 0, useCORS: true })
+    .then(canvas => {
+      const imgData = canvas.toDataURL("image/png");
+      const pdfWidth = canvas.width / 8;
+      const pdfHeight = canvas.height / 8;
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "px",
+        format: [pdfWidth, pdfHeight]
+      });
+
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      const blobUrl = pdf.output("bloburl");
+      window.open(blobUrl, "_blank");
+      document.body.removeChild(loadingMsg);
+    })
+    .catch(err => {
+      alert("Errore nella generazione del PDF: " + err.message);
+      document.body.removeChild(loadingMsg);
     });
-
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-
-    // Apri in nuova scheda
-    const blobUrl = pdf.output("bloburl");
-    window.open(blobUrl, "_blank");
-
-    // Rimuovi messaggio di caricamento
-    document.body.removeChild(loadingMsg);
-  }).catch(err => {
-    alert("Errore durante la generazione del PDF: " + err.message);
-    document.body.removeChild(loadingMsg);
-  });
 }
 
 // --- Avvio automatico ---
