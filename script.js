@@ -178,22 +178,32 @@ function stampaPDF() {
   const anno = parseInt(selAnno.value);
   const titolo = `Registro_Ore_${meseNome}_${anno}.pdf`;
 
-  // Crea contenitore temporaneo per la stampa
-  const elemento = document.createElement("div");
+  // Messaggio di caricamento
+  const loadingMsg = document.createElement("div");
+  loadingMsg.textContent = "⏳ Generazione PDF in corso...";
+  loadingMsg.style.position = "fixed";
+  loadingMsg.style.top = "10px";
+  loadingMsg.style.right = "10px";
+  loadingMsg.style.background = "#1d72ff";
+  loadingMsg.style.color = "white";
+  loadingMsg.style.padding = "8px 12px";
+  loadingMsg.style.borderRadius = "6px";
+  loadingMsg.style.fontSize = "14px";
+  loadingMsg.style.zIndex = "9999";
+  document.body.appendChild(loadingMsg);
 
-  // Clona logo e titolo
+  // Crea contenitore
+  const elemento = document.createElement("div");
   const logo = document.querySelector(".logo").cloneNode(true);
   const titoloH2 = document.createElement("h2");
   titoloH2.textContent = `Registro Ore - ${meseNome} ${anno}`;
   titoloH2.style.textAlign = "center";
 
-  // Clona tabella
   const tabella = document.getElementById("presenze").cloneNode(true);
   tabella.style.width = "100%";
   tabella.style.fontSize = "12px";
   tabella.style.borderCollapse = "collapse";
 
-  // Data e ora di visualizzazione
   const dataStampa = new Date();
   const dataInfo = document.createElement("p");
   dataInfo.textContent = `Visualizzato il ${dataStampa.toLocaleDateString()} alle ${dataStampa.toLocaleTimeString()}`;
@@ -206,14 +216,14 @@ function stampaPDF() {
   elemento.appendChild(tabella);
   elemento.appendChild(dataInfo);
 
-  // Genera canvas e PDF scrollabile
+  // Ottieni jsPDF dal bundle html2pdf
+  const { jsPDF } = window.jspdf;
+
   html2canvas(elemento, { scale: 3, scrollY: 0, useCORS: true }).then(canvas => {
     const imgData = canvas.toDataURL("image/png");
-
-    // Calcola formato PDF proporzionale all'immagine (PDF continuo)
     const pdfWidth = canvas.width / 8;
     const pdfHeight = canvas.height / 8;
-    const pdf = new jspdf.jsPDF({
+    const pdf = new jsPDF({
       orientation: "portrait",
       unit: "px",
       format: [pdfWidth, pdfHeight]
@@ -221,9 +231,15 @@ function stampaPDF() {
 
     pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
 
-    // Apri in nuova scheda per visualizzazione (scrollabile)
+    // Apri in nuova scheda
     const blobUrl = pdf.output("bloburl");
     window.open(blobUrl, "_blank");
+
+    // Rimuovi messaggio di caricamento
+    document.body.removeChild(loadingMsg);
+  }).catch(err => {
+    alert("Errore durante la generazione del PDF: " + err.message);
+    document.body.removeChild(loadingMsg);
   });
 }
 
