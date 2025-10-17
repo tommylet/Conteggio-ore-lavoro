@@ -172,29 +172,41 @@ function normalizzaFrazioni() {
   });
 }
 
-// --- Generazione PDF scrollabile ---
+// --- Generazione PDF scrollabile con barra di progresso ---
 function stampaPDF() {
   const meseNome = mesi[parseInt(selMese.value)];
   const anno = parseInt(selAnno.value);
   const titolo = `Registro_Ore_${meseNome}_${anno}.pdf`;
 
-  // Banner di caricamento
-  const loadingMsg = document.createElement("div");
-  loadingMsg.textContent = "⏳ Generazione PDF in corso...";
-  Object.assign(loadingMsg.style, {
-    position: "fixed",
-    top: "10px",
-    right: "10px",
-    background: "#1d72ff",
-    color: "white",
-    padding: "8px 12px",
-    borderRadius: "6px",
-    fontSize: "14px",
-    zIndex: "9999"
-  });
-  document.body.appendChild(loadingMsg);
+  // --- Banner con barra di progresso ---
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100%";
+  overlay.style.height = "100%";
+  overlay.style.background = "rgba(0,0,0,0.5)";
+  overlay.style.display = "flex";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.zIndex = "10000";
+  overlay.innerHTML = `
+    <div style="background:white;padding:20px;border-radius:8px;text-align:center;width:250px;">
+      <p style="margin:0 0 10px;font-weight:bold;">Generazione PDF...</p>
+      <div style="background:#ddd;border-radius:5px;height:10px;width:100%;">
+        <div id="progressBar" style="background:#1d72ff;height:10px;width:0%;border-radius:5px;transition:width 0.3s;"></div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
 
-  // Crea contenuto PDF
+  const progressBar = document.getElementById("progressBar");
+  let progress = 0;
+  const interval = setInterval(() => {
+    progress = Math.min(progress + Math.random() * 10, 95);
+    progressBar.style.width = progress + "%";
+  }, 300);
+
+  // --- Costruisci contenuto per il PDF ---
   const elemento = document.createElement("div");
   const logo = document.querySelector(".logo").cloneNode(true);
   const titoloH2 = document.createElement("h2");
@@ -218,12 +230,11 @@ function stampaPDF() {
   elemento.appendChild(tabella);
   elemento.appendChild(dataInfo);
 
-  // Recupera jsPDF dal bundle
   const jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
 
-  html2canvas(elemento, { scale: 3, scrollY: 0, useCORS: true })
+  html2canvas(elemento, { scale: 1.5, scrollY: 0, useCORS: true, backgroundColor: "#fff" })
     .then(canvas => {
-      const imgData = canvas.toDataURL("image/png");
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
       const pdfWidth = canvas.width / 8;
       const pdfHeight = canvas.height / 8;
       const pdf = new jsPDF({
@@ -232,14 +243,18 @@ function stampaPDF() {
         format: [pdfWidth, pdfHeight]
       });
 
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
       const blobUrl = pdf.output("bloburl");
       window.open(blobUrl, "_blank");
-      document.body.removeChild(loadingMsg);
+
+      clearInterval(interval);
+      progressBar.style.width = "100%";
+      setTimeout(() => document.body.removeChild(overlay), 400);
     })
     .catch(err => {
+      clearInterval(interval);
       alert("Errore nella generazione del PDF: " + err.message);
-      document.body.removeChild(loadingMsg);
+      document.body.removeChild(overlay);
     });
 }
 
