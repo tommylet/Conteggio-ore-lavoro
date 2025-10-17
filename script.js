@@ -1,8 +1,7 @@
 // ==========================
-//  Registro Ore - Phoenix
+//  Registro Ore - Phoenix (versione ottimizzata iPhone)
 // ==========================
 
-// --- Mesi e selezione ---
 const mesi = [
   "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
   "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
@@ -27,7 +26,7 @@ for (let y = annoCorrente - 1; y <= annoCorrente + 1; y++) {
 }
 selMese.value = new Date().getMonth();
 
-// --- Conversioni frazioni/decimali ---
+// --- Conversioni ---
 function decimaleAFrazione(num) {
   if (isNaN(num) || num === 0) return "0";
   let intero = Math.floor(num);
@@ -55,7 +54,6 @@ function frazioneADecimale(val) {
   return parseFloat(val.replace(",", "."));
 }
 
-// --- Chiave di salvataggio ---
 function chiaveStorage(mese, anno) {
   return "ore_" + anno + "_" + (mese + 1);
 }
@@ -119,7 +117,6 @@ function generaTabella() {
 
   document.getElementById("contenitore").innerHTML = html;
 
-  // Eventi
   document.querySelectorAll("#presenze input, #presenze textarea").forEach(inp => {
     inp.addEventListener("input", () => { salvaDati(); calcolaTotali(); });
     if (inp.dataset.col && inp.dataset.col.startsWith("c")) {
@@ -131,7 +128,6 @@ function generaTabella() {
   normalizzaFrazioni();
 }
 
-// --- Salvataggio dati ---
 function salvaDati() {
   let mese = parseInt(selMese.value);
   let anno = parseInt(selAnno.value);
@@ -152,7 +148,6 @@ function salvaDati() {
   localStorage.setItem(chiave, JSON.stringify(dati));
 }
 
-// --- Calcolo totali ---
 function calcolaTotali() {
   [5, 6, 7, 8].forEach((col, idx) => {
     let inputs = document.querySelectorAll(`#presenze tbody tr td:nth-child(${col + 1}) input`);
@@ -172,24 +167,19 @@ function normalizzaFrazioni() {
   });
 }
 
-// --- Generazione PDF scrollabile con barra di progresso ---
+// --- Generazione PDF (mostrato in un viewer interno, compatibile Safari/iPhone) ---
 function stampaPDF() {
   const meseNome = mesi[parseInt(selMese.value)];
   const anno = parseInt(selAnno.value);
   const titolo = `Registro_Ore_${meseNome}_${anno}.pdf`;
 
-  // --- Banner con barra di progresso ---
+  // Overlay con barra di progresso
   const overlay = document.createElement("div");
-  overlay.style.position = "fixed";
-  overlay.style.top = "0";
-  overlay.style.left = "0";
-  overlay.style.width = "100%";
-  overlay.style.height = "100%";
-  overlay.style.background = "rgba(0,0,0,0.5)";
-  overlay.style.display = "flex";
-  overlay.style.alignItems = "center";
-  overlay.style.justifyContent = "center";
-  overlay.style.zIndex = "10000";
+  overlay.style.cssText = `
+    position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(0,0,0,0.5);display:flex;align-items:center;
+    justify-content:center;z-index:10000;
+  `;
   overlay.innerHTML = `
     <div style="background:white;padding:20px;border-radius:8px;text-align:center;width:250px;">
       <p style="margin:0 0 10px;font-weight:bold;">Generazione PDF...</p>
@@ -198,33 +188,25 @@ function stampaPDF() {
       </div>
     </div>`;
   document.body.appendChild(overlay);
-
-  const progressBar = document.getElementById("progressBar");
+  const bar = document.getElementById("progressBar");
   let progress = 0;
-  const interval = setInterval(() => {
-    progress = Math.min(progress + Math.random() * 10, 95);
-    progressBar.style.width = progress + "%";
+  const timer = setInterval(() => {
+    progress = Math.min(progress + Math.random() * 8, 95);
+    bar.style.width = progress + "%";
   }, 300);
 
-  // --- Costruisci contenuto per il PDF ---
   const elemento = document.createElement("div");
   const logo = document.querySelector(".logo").cloneNode(true);
   const titoloH2 = document.createElement("h2");
   titoloH2.textContent = `Registro Ore - ${meseNome} ${anno}`;
   titoloH2.style.textAlign = "center";
-
   const tabella = document.getElementById("presenze").cloneNode(true);
   tabella.style.width = "100%";
   tabella.style.fontSize = "12px";
-  tabella.style.borderCollapse = "collapse";
-
-  const dataStampa = new Date();
   const dataInfo = document.createElement("p");
-  dataInfo.textContent = `Visualizzato il ${dataStampa.toLocaleDateString()} alle ${dataStampa.toLocaleTimeString()}`;
+  dataInfo.textContent = `Visualizzato il ${new Date().toLocaleString()}`;
   dataInfo.style.textAlign = "right";
   dataInfo.style.fontSize = "10px";
-  dataInfo.style.marginTop = "10px";
-
   elemento.appendChild(logo);
   elemento.appendChild(titoloH2);
   elemento.appendChild(tabella);
@@ -232,31 +214,47 @@ function stampaPDF() {
 
   const jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
 
-  html2canvas(elemento, { scale: 1.5, scrollY: 0, useCORS: true, backgroundColor: "#fff" })
+  html2canvas(elemento, { scale: 1.2, scrollY: 0, useCORS: true, backgroundColor: "#fff" })
     .then(canvas => {
-      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      const imgData = canvas.toDataURL("image/jpeg", 0.9);
       const pdfWidth = canvas.width / 8;
       const pdfHeight = canvas.height / 8;
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "px",
-        format: [pdfWidth, pdfHeight]
-      });
-
+      const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: [pdfWidth, pdfHeight] });
       pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
-      const blobUrl = pdf.output("bloburl");
-      window.open(blobUrl, "_blank");
+      const blob = pdf.output("blob");
+      const blobUrl = URL.createObjectURL(blob);
 
-      clearInterval(interval);
-      progressBar.style.width = "100%";
-      setTimeout(() => document.body.removeChild(overlay), 400);
+      clearInterval(timer);
+      bar.style.width = "100%";
+
+      setTimeout(() => {
+        document.body.removeChild(overlay);
+
+        // Mostra PDF dentro un viewer modale
+        const viewer = document.createElement("div");
+        viewer.style.cssText = `
+          position:fixed;top:0;left:0;width:100%;height:100%;
+          background:rgba(0,0,0,0.9);display:flex;flex-direction:column;
+          z-index:99999;
+        `;
+        viewer.innerHTML = `
+          <div style="padding:10px;text-align:right;">
+            <button id="closePDF" style="background:#ff4444;color:white;border:none;padding:8px 12px;border-radius:6px;font-weight:bold;">Chiudi</button>
+          </div>
+          <iframe src="${blobUrl}" style="flex:1;width:100%;border:none;background:white;"></iframe>
+        `;
+        document.body.appendChild(viewer);
+        document.getElementById("closePDF").onclick = () => {
+          document.body.removeChild(viewer);
+          URL.revokeObjectURL(blobUrl);
+        };
+      }, 500);
     })
     .catch(err => {
-      clearInterval(interval);
+      clearInterval(timer);
       alert("Errore nella generazione del PDF: " + err.message);
       document.body.removeChild(overlay);
     });
 }
 
-// --- Avvio automatico ---
 generaTabella();
