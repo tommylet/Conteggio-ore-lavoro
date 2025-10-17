@@ -1,5 +1,5 @@
 // ==========================
-//  Registro Ore - Phoenix (versione ottimizzata iPhone)
+//  Registro Ore - Phoenix (versione stabile iPhone)
 // ==========================
 
 const mesi = [
@@ -26,7 +26,6 @@ for (let y = annoCorrente - 1; y <= annoCorrente + 1; y++) {
 }
 selMese.value = new Date().getMonth();
 
-// --- Conversioni ---
 function decimaleAFrazione(num) {
   if (isNaN(num) || num === 0) return "0";
   let intero = Math.floor(num);
@@ -58,7 +57,6 @@ function chiaveStorage(mese, anno) {
   return "ore_" + anno + "_" + (mese + 1);
 }
 
-// --- Generazione tabella ---
 function generaTabella() {
   let mese = parseInt(selMese.value);
   let anno = parseInt(selAnno.value);
@@ -167,36 +165,26 @@ function normalizzaFrazioni() {
   });
 }
 
-// --- Generazione PDF (mostrato in un viewer interno, compatibile Safari/iPhone) ---
+// --- Generazione PDF stabile per iPhone ---
 function stampaPDF() {
   const meseNome = mesi[parseInt(selMese.value)];
   const anno = parseInt(selAnno.value);
   const titolo = `Registro_Ore_${meseNome}_${anno}.pdf`;
 
-  // Overlay con barra di progresso
+  const jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+
+  // Overlay con messaggio di caricamento
   const overlay = document.createElement("div");
   overlay.style.cssText = `
     position:fixed;top:0;left:0;width:100%;height:100%;
-    background:rgba(0,0,0,0.5);display:flex;align-items:center;
-    justify-content:center;z-index:10000;
+    background:rgba(0,0,0,0.6);color:white;display:flex;
+    align-items:center;justify-content:center;font-size:18px;z-index:9999;
   `;
-  overlay.innerHTML = `
-    <div style="background:white;padding:20px;border-radius:8px;text-align:center;width:250px;">
-      <p style="margin:0 0 10px;font-weight:bold;">Generazione PDF...</p>
-      <div style="background:#ddd;border-radius:5px;height:10px;width:100%;">
-        <div id="progressBar" style="background:#1d72ff;height:10px;width:0%;border-radius:5px;transition:width 0.3s;"></div>
-      </div>
-    </div>`;
+  overlay.textContent = "⏳ Generazione PDF...";
   document.body.appendChild(overlay);
-  const bar = document.getElementById("progressBar");
-  let progress = 0;
-  const timer = setInterval(() => {
-    progress = Math.min(progress + Math.random() * 8, 95);
-    bar.style.width = progress + "%";
-  }, 300);
 
+  // Clona solo il necessario
   const elemento = document.createElement("div");
-  const logo = document.querySelector(".logo").cloneNode(true);
   const titoloH2 = document.createElement("h2");
   titoloH2.textContent = `Registro Ore - ${meseNome} ${anno}`;
   titoloH2.style.textAlign = "center";
@@ -207,51 +195,42 @@ function stampaPDF() {
   dataInfo.textContent = `Visualizzato il ${new Date().toLocaleString()}`;
   dataInfo.style.textAlign = "right";
   dataInfo.style.fontSize = "10px";
-  elemento.appendChild(logo);
   elemento.appendChild(titoloH2);
   elemento.appendChild(tabella);
   elemento.appendChild(dataInfo);
 
-  const jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
-
-  html2canvas(elemento, { scale: 1.2, scrollY: 0, useCORS: true, backgroundColor: "#fff" })
+  html2canvas(elemento, { scale: 1, scrollY: 0, useCORS: true })
     .then(canvas => {
       const imgData = canvas.toDataURL("image/jpeg", 0.9);
       const pdfWidth = canvas.width / 8;
       const pdfHeight = canvas.height / 8;
       const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: [pdfWidth, pdfHeight] });
       pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
-      const blob = pdf.output("blob");
-      const blobUrl = URL.createObjectURL(blob);
 
-      clearInterval(timer);
-      bar.style.width = "100%";
-
-      setTimeout(() => {
-        document.body.removeChild(overlay);
-
-        // Mostra PDF dentro un viewer modale
-        const viewer = document.createElement("div");
-        viewer.style.cssText = `
-          position:fixed;top:0;left:0;width:100%;height:100%;
-          background:rgba(0,0,0,0.9);display:flex;flex-direction:column;
-          z-index:99999;
-        `;
-        viewer.innerHTML = `
-          <div style="padding:10px;text-align:right;">
-            <button id="closePDF" style="background:#ff4444;color:white;border:none;padding:8px 12px;border-radius:6px;font-weight:bold;">Chiudi</button>
-          </div>
-          <iframe src="${blobUrl}" style="flex:1;width:100%;border:none;background:white;"></iframe>
-        `;
-        document.body.appendChild(viewer);
-        document.getElementById("closePDF").onclick = () => {
-          document.body.removeChild(viewer);
-          URL.revokeObjectURL(blobUrl);
-        };
-      }, 500);
+      // Mostra PDF direttamente dentro la pagina
+      const pdfData = pdf.output("datauristring");
+      const viewer = document.createElement("iframe");
+      viewer.src = pdfData;
+      viewer.style.cssText = `
+        position:fixed;top:0;left:0;width:100%;height:100%;
+        background:white;z-index:99999;border:none;
+      `;
+      const closeBtn = document.createElement("button");
+      closeBtn.textContent = "Chiudi PDF";
+      closeBtn.style.cssText = `
+        position:fixed;top:10px;right:10px;
+        background:#1d72ff;color:white;border:none;
+        padding:8px 12px;border-radius:6px;font-weight:bold;z-index:100000;
+      `;
+      closeBtn.onclick = () => {
+        document.body.removeChild(viewer);
+        document.body.removeChild(closeBtn);
+      };
+      document.body.appendChild(viewer);
+      document.body.appendChild(closeBtn);
+      document.body.removeChild(overlay);
     })
     .catch(err => {
-      clearInterval(timer);
       alert("Errore nella generazione del PDF: " + err.message);
       document.body.removeChild(overlay);
     });
